@@ -1,0 +1,364 @@
+"""
+商场网页 - Flask 应用
+功能：商品展示、商品详情、购物车、搜索、分类浏览
+"""
+
+from flask import Flask, render_template, request, session, redirect, url_for, jsonify
+
+app = Flask(__name__)
+app.secret_key = 'mall_secret_key_2024'
+
+# =============== 模拟商品数据 ===============
+PRODUCTS = [
+    {
+        'id': 1,
+        'name': 'Apple iPhone 15 Pro',
+        'price': 7999.00,
+        'original_price': 8999.00,
+        'category': '手机数码',
+        'image': 'https://picsum.photos/seed/phone1/400/400',
+        'description': '全新A17 Pro芯片，钛金属设计，专业级摄像系统，支持USB-C接口。',
+        'stock': 128,
+        'sales': 2356,
+        'rating': 4.8
+    },
+    {
+        'id': 2,
+        'name': '华为 Mate 60 Pro',
+        'price': 6999.00,
+        'original_price': 7499.00,
+        'category': '手机数码',
+        'image': 'https://picsum.photos/seed/phone2/400/400',
+        'description': '麒麟9000S芯片，卫星通话，超可靠玄武架构，全焦段超清影像。',
+        'stock': 56,
+        'sales': 5680,
+        'rating': 4.9
+    },
+    {
+        'id': 3,
+        'name': 'MacBook Pro 14英寸',
+        'price': 14999.00,
+        'original_price': 16999.00,
+        'category': '电脑办公',
+        'image': 'https://picsum.photos/seed/laptop1/400/400',
+        'description': 'M3 Pro芯片，18GB内存，512GB存储，Liquid Retina XDR显示屏。',
+        'stock': 32,
+        'sales': 892,
+        'rating': 4.9
+    },
+    {
+        'id': 4,
+        'name': '小米 14 Ultra',
+        'price': 5999.00,
+        'original_price': 6499.00,
+        'category': '手机数码',
+        'image': 'https://picsum.photos/seed/phone3/400/400',
+        'description': '徕卡全焦段四摄，骁龙8 Gen3处理器，2K超视感屏，90W快充。',
+        'stock': 89,
+        'sales': 1567,
+        'rating': 4.7
+    },
+    {
+        'id': 5,
+        'name': '索尼 WH-1000XM5 耳机',
+        'price': 2299.00,
+        'original_price': 2899.00,
+        'category': '数码配件',
+        'image': 'https://picsum.photos/seed/headphone1/400/400',
+        'description': '业界领先降噪，30小时续航，Hi-Res Audio认证，多点连接。',
+        'stock': 200,
+        'sales': 3421,
+        'rating': 4.8
+    },
+    {
+        'id': 6,
+        'name': 'Nike Air Jordan 1',
+        'price': 1299.00,
+        'original_price': 1599.00,
+        'category': '运动户外',
+        'image': 'https://picsum.photos/seed/shoe1/400/400',
+        'description': '经典高帮设计，真皮鞋面，气垫缓震，百搭潮流单品。',
+        'stock': 156,
+        'sales': 8923,
+        'rating': 4.6
+    },
+    {
+        'id': 7,
+        'name': '戴森 V15 吸尘器',
+        'price': 4990.00,
+        'original_price': 5490.00,
+        'category': '家用电器',
+        'image': 'https://picsum.photos/seed/vacuum1/400/400',
+        'description': '激光探测灰尘，智能感应吸力，60分钟续航，豪华配件套装。',
+        'stock': 45,
+        'sales': 678,
+        'rating': 4.9
+    },
+    {
+        'id': 8,
+        'name': 'iPad Pro 12.9英寸',
+        'price': 8999.00,
+        'original_price': 9999.00,
+        'category': '电脑办公',
+        'image': 'https://picsum.photos/seed/ipad1/400/400',
+        'description': 'M2芯片，Liquid Retina XDR显示屏，支持Apple Pencil悬停。',
+        'stock': 67,
+        'sales': 1234,
+        'rating': 4.8
+    },
+    {
+        'id': 9,
+        'name': '雅诗兰黛小棕瓶精华',
+        'price': 760.00,
+        'original_price': 950.00,
+        'category': '美妆护肤',
+        'image': 'https://picsum.photos/seed/skincare1/400/400',
+        'description': '第七代小棕瓶，修护肌底，淡化细纹，提亮肤色，50ml装。',
+        'stock': 500,
+        'sales': 12560,
+        'rating': 4.7
+    },
+    {
+        'id': 10,
+        'name': '任天堂 Switch OLED',
+        'price': 2399.00,
+        'original_price': 2599.00,
+        'category': '数码配件',
+        'image': 'https://picsum.photos/seed/switch1/400/400',
+        'description': '7英寸OLED屏幕，鲜艳色彩，64GB存储，增强型底座。',
+        'stock': 78,
+        'sales': 4521,
+        'rating': 4.8
+    },
+    {
+        'id': 11,
+        'name': '阿迪达斯 Ultraboost 22',
+        'price': 899.00,
+        'original_price': 1299.00,
+        'category': '运动户外',
+        'image': 'https://picsum.photos/seed/shoe2/400/400',
+        'description': 'Boost中底科技，极致缓震回弹，透气编织鞋面，跑步健身首选。',
+        'stock': 234,
+        'sales': 6789,
+        'rating': 4.5
+    },
+    {
+        'id': 12,
+        'name': '美的 变频空调 1.5匹',
+        'price': 2699.00,
+        'original_price': 3299.00,
+        'category': '家用电器',
+        'image': 'https://picsum.photos/seed/ac1/400/400',
+        'description': '新一级能效，变频节能，自清洁，智能WiFi控制，静音运行。',
+        'stock': 89,
+        'sales': 2345,
+        'rating': 4.6
+    },
+]
+
+# 商品分类
+CATEGORIES = ['全部', '手机数码', '电脑办公', '数码配件', '运动户外', '家用电器', '美妆护肤']
+
+
+# =============== 工具函数 ===============
+def get_cart_count():
+    """获取购物车商品数量"""
+    cart = session.get('cart', [])
+    return sum(item['quantity'] for item in cart)
+
+
+def get_product_by_id(product_id):
+    """根据ID获取商品"""
+    for p in PRODUCTS:
+        if p['id'] == product_id:
+            return p
+    return None
+
+
+# =============== 路由 ===============
+@app.route('/')
+def index():
+    """首页"""
+    category = request.args.get('category', '全部')
+    search = request.args.get('search', '').strip()
+    sort = request.args.get('sort', 'default')
+
+    # 筛选商品
+    products = PRODUCTS.copy()
+
+    if category != '全部':
+        products = [p for p in products if p['category'] == category]
+
+    if search:
+        products = [p for p in products if search.lower() in p['name'].lower()
+                    or search.lower() in p['description'].lower()]
+
+    # 排序
+    if sort == 'price_asc':
+        products.sort(key=lambda x: x['price'])
+    elif sort == 'price_desc':
+        products.sort(key=lambda x: x['price'], reverse=True)
+    elif sort == 'sales':
+        products.sort(key=lambda x: x['sales'], reverse=True)
+    elif sort == 'rating':
+        products.sort(key=lambda x: x['rating'], reverse=True)
+
+    # 轮播图数据
+    banners = [
+        {'title': '双11狂欢节', 'subtitle': '全场低至5折起', 'image': 'https://picsum.photos/seed/banner1/1200/400', 'color': '#ff6b6b'},
+        {'title': '新品首发', 'subtitle': '数码新品抢先购', 'image': 'https://picsum.photos/seed/banner2/1200/400', 'color': '#4ecdc4'},
+        {'title': '品牌特惠', 'subtitle': '大牌美妆限时优惠', 'image': 'https://picsum.photos/seed/banner3/1200/400', 'color': '#ffe66d'},
+    ]
+
+    context = {
+        'products': products,
+        'categories': CATEGORIES,
+        'current_category': category,
+        'search': search,
+        'sort': sort,
+        'banners': banners,
+        'cart_count': get_cart_count(),
+        'total_products': len(products),
+    }
+    return render_template('index.html', **context)
+
+
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    """商品详情页"""
+    product = get_product_by_id(product_id)
+    if not product:
+        return render_template('404.html'), 404
+
+    # 推荐商品（同类其他商品）
+    related = [p for p in PRODUCTS if p['category'] == product['category'] and p['id'] != product_id][:4]
+
+    context = {
+        'product': product,
+        'related': related,
+        'cart_count': get_cart_count(),
+    }
+    return render_template('product.html', **context)
+
+
+@app.route('/cart')
+def cart():
+    """购物车页面"""
+    cart_items = session.get('cart', [])
+    total_price = sum(item['price'] * item['quantity'] for item in cart_items)
+    total_original = sum(item['original_price'] * item['quantity'] for item in cart_items)
+    saved = total_original - total_price
+
+    context = {
+        'cart_items': cart_items,
+        'total_price': round(total_price, 2),
+        'total_original': round(total_original, 2),
+        'saved': round(saved, 2),
+        'cart_count': get_cart_count(),
+    }
+    return render_template('cart.html', **context)
+
+
+@app.route('/cart/add', methods=['POST'])
+def add_to_cart():
+    """添加到购物车"""
+    product_id = request.form.get('product_id', type=int)
+    quantity = request.form.get('quantity', 1, type=int)
+
+    product = get_product_by_id(product_id)
+    if not product:
+        return jsonify({'success': False, 'message': '商品不存在'})
+
+    cart = session.get('cart', [])
+
+    # 检查是否已在购物车
+    found = False
+    for item in cart:
+        if item['id'] == product_id:
+            item['quantity'] += quantity
+            found = True
+            break
+
+    if not found:
+        cart.append({
+            'id': product['id'],
+            'name': product['name'],
+            'price': product['price'],
+            'original_price': product['original_price'],
+            'image': product['image'],
+            'quantity': quantity,
+        })
+
+    session['cart'] = cart
+    count = sum(item['quantity'] for item in cart)
+
+    return jsonify({
+        'success': True,
+        'message': '已加入购物车',
+        'cart_count': count,
+    })
+
+
+@app.route('/cart/update', methods=['POST'])
+def update_cart():
+    """更新购物车数量"""
+    product_id = request.form.get('product_id', type=int)
+    quantity = request.form.get('quantity', 1, type=int)
+
+    if quantity < 1:
+        quantity = 1
+
+    cart = session.get('cart', [])
+    for item in cart:
+        if item['id'] == product_id:
+            item['quantity'] = quantity
+            break
+
+    session['cart'] = cart
+    return jsonify({'success': True, 'cart_count': get_cart_count()})
+
+
+@app.route('/cart/remove', methods=['POST'])
+def remove_from_cart():
+    """从购物车移除"""
+    product_id = request.form.get('product_id', type=int)
+
+    cart = session.get('cart', [])
+    cart = [item for item in cart if item['id'] != product_id]
+    session['cart'] = cart
+
+    return jsonify({'success': True, 'cart_count': get_cart_count()})
+
+
+@app.route('/checkout')
+def checkout():
+    """结算页（模拟）"""
+    cart_items = session.get('cart', [])
+    if not cart_items:
+        return redirect(url_for('cart'))
+
+    total_price = sum(item['price'] * item['quantity'] for item in cart_items)
+
+    context = {
+        'cart_items': cart_items,
+        'total_price': round(total_price, 2),
+        'cart_count': get_cart_count(),
+    }
+    return render_template('checkout.html', **context)
+
+
+@app.route('/order/success')
+def order_success():
+    """下单成功（模拟）"""
+    # 清空购物车
+    session['cart'] = []
+    return render_template('order_success.html', cart_count=0)
+
+
+# =============== 启动 ===============
+if __name__ == '__main__':
+    print("=" * 50)
+    print("  🛒 商场网页已启动！")
+    print("  访问地址: http://127.0.0.1:5000")
+    print("=" * 50)
+    app.run(debug=True, host='0.0.0.0', port=5000)
