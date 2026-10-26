@@ -1,1 +1,157 @@
 
+<!DOCTYPE html>
+<html lang="zh‑CN">
+<head>
+<meta charset="UTF-8">
+<title>404</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<h1>404 页面不存在</h1>
+<a href=" ">返回首页</a >
+</body>
+</html><!DOCTYPE html>
+<html lang="zh‑CN">
+<head>
+<meta charset="UTF-8">
+<title>购物车</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="header">
+  <a href=" ">返回首页</a >
+  <h2>我的购物车</h2>
+</div>
+
+{% if cart_items|length==0 %}
+<p>购物车是空的</p ><!DOCTYPE html>
+<html lang="zh‑CN">
+<head>
+<meta charset="UTF-8">
+<title>确认订单</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="header"><a href=" ">返回购物车</a ><h2>确认订单</h2></div>
+{%for item in cart_items%}
+<div>{{item.name}} ×{{item.quantity}}  ¥{{item.price*item.quantity}}</div>
+{%endfor%}
+<h3>总金额：{{total_price}}</h3>
+<a href="/order/success"><button>提交订单</button></a >
+</body><!DOCTYPE html><!DOCTYPE html>
+<html lang="zh‑CN">
+<head>
+<meta charset="UTF-8"><!DOCTYPE html>
+<html lang="zh‑CN">
+<head>
+<meta charset="UTF-8">
+<title>{{product.name}}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="header">
+  <a href=" ">返回首页</a >
+  <div>购物车(<span>{{cart_count}}</span>)</div>
+</div>
+
+<div class="detail">
+  < img src="{{product.image}}">
+  <div>
+    <h2>{{product.name}}</h2>
+    <p>售价：¥{{product.price}} 原价¥{{product.original_price}}</p >
+    <p>分类：{{product.category}}</p >
+    <p>{{product.description}}</p >
+    <p>库存：{{product.stock}}</p >
+    <button id="addBtn">加入购物车</button>
+  </div>
+</div>
+
+<script>
+const pid={{product.id}};
+document.getElementById('addBtn').onclick=async ()=>{
+  const fd=new FormData();
+  fd.append("product_id",pid);
+  fd.append("quantity",1);
+  const res=await fetch("/cart/add",{method:"POST",body:fd});
+  const data=await res.json();
+  alert(data.message);
+  location.reload();
+}
+</script>
+</body>
+</html>
+<title>下单成功</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<h1>✅下单成功！</h1>
+<a href=" ">回到首页</a >
+</body>
+</html>
+<html lang="zh‑CN">
+<head>
+<meta charset="UTF-8">
+<title>网上商城</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="header">
+  <h1>🛒网上商城</h1>
+  <div>购物车(<span>{{cart_count}}</span>)</div>
+</div>
+
+<div class="search-bar">
+  <form action="/" method="get">
+    <input type="text" name="search" placeholder="搜索商品" value="{{search}}">
+    <select name="category">
+      {% for c in categories %}
+      <option value="{{c}}" {%if current_category==c%}selected{%endif%}>{{c}}</option>
+      {%endfor%}
+    </select>
+    <select name="sort">
+      <option value="default">默认</option>
+      <option value="price_asc">价格升序</option>
+      <option value="price_desc">价格降序</option>
+      <option value="sales">销量</option>
+      <option value="rating">评分</option>
+    </select>
+    <button type="submit">查询</button>
+  </form>
+</div>
+
+<div class="product-list">
+{% for p in products %}
+<div class="product-card">
+  < img src="{{p.image}}" alt="{{p.name}}">
+  <h3>{{p.name}}</h3>
+  <div class="price">¥{{p.price}}</div>
+  <div>销量:{{p.sales}}｜评分:{{p.rating}}</div>
+  <a href=" ">查看详情</a >
+</div>
+{%endfor%}
+</div>
+</body>
+</html>
+</html>
+{%else%}
+{%for item in cart_items%}
+<div class="cart-item">
+  <span>{{item.name}}</span>
+  <span>¥{{item.price}} × {{item.quantity}}</span>
+  <button onclick="del({{item.id}})">删除</button>
+</div>
+{%endfor%}
+<div>合计：¥{{total_price}}，节省{{saved}}</div>
+<a href="/checkout"><button>去结算</button></a >
+{%endif%}
+
+<script>
+async function del(pid){
+  const fd=new FormData();
+  fd.append("product_id",pid);
+  await fetch("/cart/remove",{method:"POST",body:fd});
+  location.reload();
+}
+</script>
+</body>
+</html>
